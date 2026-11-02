@@ -1,10 +1,12 @@
-
 import { useState } from 'react';
+import { sendChatMessage } from './api/chatApi';
 import './App.css';
 
 function App() {
   const [workTitle, setWorkTitle] = useState('어린 왕자');
   const [question, setQuestion] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sources, setSources] = useState([]);
 
   const [messages, setMessages] = useState([
     {
@@ -14,22 +16,60 @@ function App() {
     },
   ]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmedQuestion = question.trim();
 
-    if (!trimmedQuestion) return;
+    if (!trimmedQuestion || loading) return;
+
+    const previousMessages = messages;
 
     setMessages((prev) => [
       ...prev,
       { role: 'user', content: trimmedQuestion },
-      {
-        role: 'assistant',
-        content:
-          '질문을 확인했습니다. 현재는 화면 구현 단계입니다. 다음 단계에서 AI 서버와 연결하여 작품 자료를 바탕으로 답변하도록 만들겠습니다.',
-      },
     ]);
 
     setQuestion('');
+    setLoading(true);
+    setSources([]);
+
+    try {
+      const history = previousMessages
+        .filter((message) => message.role === 'user' ||
+          message.role === 'assistant')
+        .map((message) => ({
+          role: message.role,
+          content: message.content,
+        }));
+
+      const data = await sendChatMessage(
+        trimmedQuestion,
+        workTitle,
+        history
+      );
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: data.answer,
+        },
+      ]);
+
+      setSources(data.sources || []);
+    } catch (error) {
+      console.error('Chat API Error:', error);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            '죄송합니다. AI 서버와 통신하는 중 오류가 발생했습니다. 백엔드 서버와 Ollama 실행 상태를 확인해 주세요.',
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleKeyDown = (event) => {
@@ -72,7 +112,7 @@ function App() {
 
             <span className="status">
               <span className="status-dot"></span>
-              AI 준비 완료
+              {loading ? 'AI 답변 생성 중...' : 'AI 준비 완료'}
             </span>
           </div>
 
@@ -82,6 +122,7 @@ function App() {
               id="work"
               value={workTitle}
               onChange={(event) => setWorkTitle(event.target.value)}
+              disabled={loading}
             >
               <option value="어린 왕자">어린 왕자</option>
               <option value="테스트 작품">테스트 작품</option>
@@ -110,13 +151,32 @@ function App() {
                 </div>
               </div>
             ))}
+
+            {loading && (
+              <div className="loading-message">
+                AI가 답변을 생성하고 있습니다...
+              </div>
+            )}
           </div>
 
           <div className="source-area">
             <span className="source-title">참고 자료</span>
-            <div className="source-placeholder">
-              AI 서버 연결 후 답변에 사용된 작품 자료가 표시됩니다.
-            </div>
+
+            {sources.length === 0 ? (
+              <div className="source-placeholder">
+                AI 답변에 사용된 작품 자료가 여기에 표시됩니다.
+              </div>
+            ) : (
+              <div className="source-list">
+                {sources.map((source) => (
+                  <div className="source-item" key={source.id}>
+                    <strong>{source.sourceTitle || '작품 자료'}</strong>
+                    <span>{source.section}</span>
+                    <p>{source.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="input-area">
@@ -126,14 +186,15 @@ function App() {
               onKeyDown={handleKeyDown}
               placeholder={`${workTitle}에 관해 궁금한 점을 질문해 보세요.`}
               rows="2"
+              disabled={loading}
             />
 
             <button
               className="send-button"
               onClick={handleSend}
-              disabled={!question.trim()}
+              disabled={!question.trim() || loading}
             >
-              전송 ↑
+              {loading ? '생성 중...' : '전송 ↑'}
             </button>
           </div>
 
