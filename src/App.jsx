@@ -1,122 +1,153 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+
+import { useState } from 'react';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [workTitle, setWorkTitle] = useState('어린 왕자');
+  const [question, setQuestion] = useState('');
+
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content:
+        '안녕하세요! StoryDebate AI입니다. 작품에 관해 궁금한 점을 질문하거나 자유롭게 토론해 보세요.',
+    },
+  ]);
+
+  const handleSend = () => {
+    const trimmedQuestion = question.trim();
+
+    if (!trimmedQuestion) return;
+
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', content: trimmedQuestion },
+      {
+        role: 'assistant',
+        content:
+          '질문을 확인했습니다. 현재는 화면 구현 단계입니다. 다음 단계에서 AI 서버와 연결하여 작품 자료를 바탕으로 답변하도록 만들겠습니다.',
+      },
+    ]);
+
+    setQuestion('');
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app">
+      <header className="header">
+        <div className="logo">
+          <div className="logo-icon">S</div>
+          <span>StoryDebate <strong>AI</strong></span>
         </div>
-        <div>
-          <h1>Get started</h1>
+
+        <nav className="header-menu">
+          <span className="active">AI 토론</span>
+          <span>프로젝트 소개</span>
+        </nav>
+      </header>
+
+      <main className="main-container">
+        <section className="intro">
+          <span className="intro-label">AI LITERATURE DEBATE</span>
+          <h1>작품 속 이야기를<br />새로운 시선으로 토론하다.</h1>
           <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+            AI와 함께 문학 작품을 탐구하고
+            다양한 관점에서 생각을 나눠보세요.
           </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        </section>
 
-      <div className="ticks"></div>
+        <section className="chat-card">
+          <div className="chat-header">
+            <div>
+              <h2>AI 토론 공간</h2>
+              <p>작품을 선택하고 질문을 시작해 보세요.</p>
+            </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+            <span className="status">
+              <span className="status-dot"></span>
+              AI 준비 완료
+            </span>
+          </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+          <div className="work-selector">
+            <label htmlFor="work">토론할 작품</label>
+            <select
+              id="work"
+              value={workTitle}
+              onChange={(event) => setWorkTitle(event.target.value)}
+            >
+              <option value="어린 왕자">어린 왕자</option>
+              <option value="테스트 작품">테스트 작품</option>
+            </select>
+          </div>
+
+          <div className="messages">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`message-row ${message.role}`}
+              >
+                {message.role === 'assistant' && (
+                  <div className="avatar">AI</div>
+                )}
+
+                <div className="message-content">
+                  <span className="message-name">
+                    {message.role === 'assistant'
+                      ? 'StoryDebate AI'
+                      : '나'}
+                  </span>
+                  <div className="message-bubble">
+                    {message.content}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="source-area">
+            <span className="source-title">참고 자료</span>
+            <div className="source-placeholder">
+              AI 서버 연결 후 답변에 사용된 작품 자료가 표시됩니다.
+            </div>
+          </div>
+
+          <div className="input-area">
+            <textarea
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={`${workTitle}에 관해 궁금한 점을 질문해 보세요.`}
+              rows="2"
+            />
+
+            <button
+              className="send-button"
+              onClick={handleSend}
+              disabled={!question.trim()}
+            >
+              전송 ↑
+            </button>
+          </div>
+
+          <p className="input-guide">
+            Enter를 누르면 전송됩니다. Shift + Enter로 줄을 바꿀 수 있습니다.
+          </p>
+        </section>
+
+        <footer>
+          StoryDebate AI © 2026. Literature meets AI.
+        </footer>
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
