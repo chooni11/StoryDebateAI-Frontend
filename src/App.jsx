@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { sendChatMessage } from './api/chatApi';
 import './App.css';
 
@@ -16,6 +16,33 @@ function App() {
     },
   ]);
 
+  // 자동 스크롤을 위한 참조
+  const messagesEndRef = useRef(null);
+
+  // 메시지가 추가되거나 로딩 상태가 변경되면 아래로 스크롤
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+    });
+  }, [messages, loading]);
+
+  // 새 대화 시작
+  const handleNewChat = () => {
+    if (loading) return;
+
+    setMessages([
+      {
+        role: 'assistant',
+        content:
+          '안녕하세요! StoryDebate AI입니다. 작품에 관해 궁금한 점을 질문하거나 자유롭게 토론해 보세요.',
+      },
+    ]);
+
+    setQuestion('');
+    setSources([]);
+  };
+
+  // 질문 전송
   const handleSend = async () => {
     const trimmedQuestion = question.trim();
 
@@ -33,9 +60,13 @@ function App() {
     setSources([]);
 
     try {
+      // 이전 대화 기록을 백엔드에 전달
       const history = previousMessages
-        .filter((message) => message.role === 'user' ||
-          message.role === 'assistant')
+        .filter(
+          (message) =>
+            message.role === 'user' ||
+            message.role === 'assistant'
+        )
         .map((message) => ({
           role: message.role,
           content: message.content,
@@ -72,6 +103,7 @@ function App() {
     }
   };
 
+  // Enter 키로 질문 전송
   const handleKeyDown = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -84,7 +116,9 @@ function App() {
       <header className="header">
         <div className="logo">
           <div className="logo-icon">S</div>
-          <span>StoryDebate <strong>AI</strong></span>
+          <span>
+            StoryDebate <strong>AI</strong>
+          </span>
         </div>
 
         <nav className="header-menu">
@@ -95,8 +129,16 @@ function App() {
 
       <main className="main-container">
         <section className="intro">
-          <span className="intro-label">AI LITERATURE DEBATE</span>
-          <h1>작품 속 이야기를<br />새로운 시선으로 토론하다.</h1>
+          <span className="intro-label">
+            AI LITERATURE DEBATE
+          </span>
+
+          <h1>
+            작품 속 이야기를
+            <br />
+            새로운 시선으로 토론하다.
+          </h1>
+
           <p>
             AI와 함께 문학 작품을 탐구하고
             다양한 관점에서 생각을 나눠보세요.
@@ -110,18 +152,33 @@ function App() {
               <p>작품을 선택하고 질문을 시작해 보세요.</p>
             </div>
 
-            <span className="status">
-              <span className="status-dot"></span>
-              {loading ? 'AI 답변 생성 중...' : 'AI 준비 완료'}
-            </span>
+            <div className="chat-header-actions">
+              <button
+                className="new-chat-button"
+                onClick={handleNewChat}
+                disabled={loading}
+              >
+                + 새 대화
+              </button>
+
+              <span className="status">
+                <span className="status-dot"></span>
+                {loading
+                  ? 'AI 답변 생성 중...'
+                  : 'AI 준비 완료'}
+              </span>
+            </div>
           </div>
 
           <div className="work-selector">
             <label htmlFor="work">토론할 작품</label>
+
             <select
               id="work"
               value={workTitle}
-              onChange={(event) => setWorkTitle(event.target.value)}
+              onChange={(event) =>
+                setWorkTitle(event.target.value)
+              }
               disabled={loading}
             >
               <option value="어린 왕자">어린 왕자</option>
@@ -145,6 +202,7 @@ function App() {
                       ? 'StoryDebate AI'
                       : '나'}
                   </span>
+
                   <div className="message-bubble">
                     {message.content}
                   </div>
@@ -157,6 +215,9 @@ function App() {
                 AI가 답변을 생성하고 있습니다...
               </div>
             )}
+
+            {/* 자동 스크롤 기준점 */}
+            <div ref={messagesEndRef} />
           </div>
 
           <div className="source-area">
@@ -169,9 +230,16 @@ function App() {
             ) : (
               <div className="source-list">
                 {sources.map((source) => (
-                  <div className="source-item" key={source.id}>
-                    <strong>{source.sourceTitle || '작품 자료'}</strong>
+                  <div
+                    className="source-item"
+                    key={source.id}
+                  >
+                    <strong>
+                      {source.sourceTitle || '작품 자료'}
+                    </strong>
+
                     <span>{source.section}</span>
+
                     <p>{source.content}</p>
                   </div>
                 ))}
@@ -182,7 +250,9 @@ function App() {
           <div className="input-area">
             <textarea
               value={question}
-              onChange={(event) => setQuestion(event.target.value)}
+              onChange={(event) =>
+                setQuestion(event.target.value)
+              }
               onKeyDown={handleKeyDown}
               placeholder={`${workTitle}에 관해 궁금한 점을 질문해 보세요.`}
               rows="2"

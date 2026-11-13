@@ -358,3 +358,52 @@ footer {
   color: #777b8e;
 }
 
+/* 새 대화 버튼 */
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.new-chat-button {
+  padding: 9px 14px;
+  border: 1px solid #dedfea;
+  border-radius: 9px;
+  background: white;
+  color: #7161d8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.new-chat-button:hover:not(:disabled) {
+  background: #f5f3ff;
+  border-color: #7161d8;
+}
+
+.new-chat-button:disabled {
+  color: #aaa;
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* 메시지 영역 자동 스크롤 */
+.messages {
+  scroll-behavior: smooth;
+}
+
+/* 모바일 화면 */
+@media (max-width: 600px) {
+  .chat-header-actions {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .new-chat-button {
+    padding: 8px 11px;
+    font-size: 11px;
+  }
+}
