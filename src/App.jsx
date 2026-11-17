@@ -2,17 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 import { sendChatMessage } from './api/chatApi';
 import './App.css';
 
+const WELCOME_MESSAGE =
+  '안녕하세요! StoryDebate AI입니다. 작품에 관해 궁금한 점을 질문하거나 자유롭게 토론해 보세요.';
+
 function App() {
   const [workTitle, setWorkTitle] = useState('어린 왕자');
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sources, setSources] = useState([]);
 
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content:
-        '안녕하세요! StoryDebate AI입니다. 작품에 관해 궁금한 점을 질문하거나 자유롭게 토론해 보세요.',
+      content: WELCOME_MESSAGE,
+      type: 'normal',
+      sources: [],
     },
   ]);
 
@@ -33,13 +36,13 @@ function App() {
     setMessages([
       {
         role: 'assistant',
-        content:
-          '안녕하세요! StoryDebate AI입니다. 작품에 관해 궁금한 점을 질문하거나 자유롭게 토론해 보세요.',
+        content: WELCOME_MESSAGE,
+        type: 'normal',
+        sources: [],
       },
     ]);
 
     setQuestion('');
-    setSources([]);
   };
 
   // 질문 전송
@@ -48,45 +51,63 @@ function App() {
 
     if (!trimmedQuestion || loading) return;
 
-    const previousMessages = messages;
+    // 현재까지의 대화 기록 추출
+    const history = messages
+      .filter(
+        (message) =>
+          (message.role === 'user' ||
+            message.role === 'assistant') &&
+          message.type !== 'warning' &&
+          message.content !== WELCOME_MESSAGE
+      )
+      .map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
 
+    // 사용자 질문 화면에 추가
     setMessages((prev) => [
       ...prev,
-      { role: 'user', content: trimmedQuestion },
+      {
+        role: 'user',
+        content: trimmedQuestion,
+        type: 'normal',
+        sources: [],
+      },
     ]);
 
     setQuestion('');
     setLoading(true);
-    setSources([]);
 
     try {
-      // 이전 대화 기록을 백엔드에 전달
-      const history = previousMessages
-        .filter(
-          (message) =>
-            message.role === 'user' ||
-            message.role === 'assistant'
-        )
-        .map((message) => ({
-          role: message.role,
-          content: message.content,
-        }));
-
+      // 질문과 이전 대화 기록을 백엔드에 전달
       const data = await sendChatMessage(
         trimmedQuestion,
         workTitle,
         history
       );
 
+      // 작품 불일치 여부 확인
+      const isWorkMismatch = data?.workMismatch === true;
+
+      // AI 답변과 해당 답변의 참고 자료를 함께 저장
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: data.answer,
+          content:
+            data?.answer ||
+            '죄송합니다. AI 답변을 가져오지 못했습니다.',
+          type: isWorkMismatch ? 'warning' : 'normal',
+
+          // 답변별 참고 자료 저장
+          sources: isWorkMismatch
+            ? []
+            : Array.isArray(data?.sources)
+              ? data.sources
+              : [],
         },
       ]);
-
-      setSources(data.sources || []);
     } catch (error) {
       console.error('Chat API Error:', error);
 
@@ -96,6 +117,8 @@ function App() {
           role: 'assistant',
           content:
             '죄송합니다. AI 서버와 통신하는 중 오류가 발생했습니다. 백엔드 서버와 Ollama 실행 상태를 확인해 주세요.',
+          type: 'normal',
+          sources: [],
         },
       ]);
     } finally {
@@ -109,6 +132,26 @@ function App() {
       event.preventDefault();
       handleSend();
     }
+  };
+
+  // 작품 변경
+  const handleWorkChange = (event) => {
+    if (loading) return;
+
+    const selectedWork = event.target.value;
+
+    setWorkTitle(selectedWork);
+    setQuestion('');
+
+    // 이전 작품의 대화 기록 초기화
+    setMessages([
+      {
+        role: 'assistant',
+        content: `${selectedWork}에 대한 새로운 토론을 시작해 보세요.`,
+        type: 'normal',
+        sources: [],
+      },
+    ]);
   };
 
   return (
@@ -176,12 +219,11 @@ function App() {
             <select
               id="work"
               value={workTitle}
-              onChange={(event) =>
-                setWorkTitle(event.target.value)
-              }
+              onChange={handleWorkChange}
               disabled={loading}
             >
               <option value="어린 왕자">어린 왕자</option>
+              <option value="흥부와 놀부">흥부와 놀부</option>
               <option value="테스트 작품">테스트 작품</option>
             </select>
           </div>
@@ -190,7 +232,11 @@ function App() {
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`message-row ${message.role}`}
+                className={`message-row ${message.role} ${
+                  message.type === 'warning'
+                    ? 'warning-message-row'
+                    : ''
+                }`}
               >
                 {message.role === 'assistant' && (
                   <div className="avatar">AI</div>
@@ -203,9 +249,52 @@ function App() {
                       : '나'}
                   </span>
 
-                  <div className="message-bubble">
+                  <div
+                    className={`message-bubble ${
+                      message.type === 'warning'
+                        ? 'warning-bubble'
+                        : ''
+                    }`}
+                  >
                     {message.content}
                   </div>
+
+                  {/* 해당 AI 답변의 참고 자료 */}
+                  {message.role === 'assistant' &&
+                    message.sources?.length > 0 && (
+                      <div className="source-area">
+                        <span className="source-title">
+                          참고 자료
+                        </span>
+
+                        <div className="source-list">
+                          {message.sources.map(
+                            (source, sourceIndex) => (
+                              <div
+                                className="source-item"
+                                key={
+                                  source.id ??
+                                  `${source.sourceTitle}-${sourceIndex}`
+                                }
+                              >
+                                <strong>
+                                  {source.sourceTitle ||
+                                    '작품 자료'}
+                                </strong>
+
+                                {source.section && (
+                                  <span>{source.section}</span>
+                                )}
+
+                                {source.content && (
+                                  <p>{source.content}</p>
+                                )}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
                 </div>
               </div>
             ))}
@@ -218,33 +307,6 @@ function App() {
 
             {/* 자동 스크롤 기준점 */}
             <div ref={messagesEndRef} />
-          </div>
-
-          <div className="source-area">
-            <span className="source-title">참고 자료</span>
-
-            {sources.length === 0 ? (
-              <div className="source-placeholder">
-                AI 답변에 사용된 작품 자료가 여기에 표시됩니다.
-              </div>
-            ) : (
-              <div className="source-list">
-                {sources.map((source) => (
-                  <div
-                    className="source-item"
-                    key={source.id}
-                  >
-                    <strong>
-                      {source.sourceTitle || '작품 자료'}
-                    </strong>
-
-                    <span>{source.section}</span>
-
-                    <p>{source.content}</p>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="input-area">

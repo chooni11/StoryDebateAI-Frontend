@@ -407,3 +407,15 @@ footer {
     font-size: 11px;
   }
 }
+
+/* 작품 불일치 안내 메시지 */
+.warning-bubble {
+  background-color: #fff8e8;
+  border: 1px solid #e7c779;
+  color: #75551b;
+  line-height: 1.7;
+}
+
+.warning-message-row .message-name {
+  color: #a77924;
+}
